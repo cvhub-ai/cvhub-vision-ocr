@@ -5,19 +5,19 @@ from src.ocr.engine.ocr_engine import OcrEngine
 class EngineFactory:
     @staticmethod
     def create_engine(
-        pipeline_config_data: dict, detector_config: dict, recognizer_config: dict
+        pipeline_config: dict, detector_config: dict, recognizer_config: dict
     ) -> OcrEngine:
 
         engine = OcrEngine()
 
         # Detector type (has converted to DetectorType) and detector config have already been validated
         # during configuration loading, so no additional validation is required here.
-        detector_type = pipeline_config_data["detector"]["type"]
+        detector_type = pipeline_config["detector"]["type"]
         EngineFactory._create_engine_detector(engine, detector_type, detector_config)
 
         # Recognizer type (has converted to RecognizerType) and recognizer config have already been validated
         # during configuration loading, so no additional validation is required here.
-        recognizer_type = pipeline_config_data["recognizer"]["type"]
+        recognizer_type = pipeline_config["recognizer"]["type"]
         EngineFactory._create_engine_recognizer(
             engine, recognizer_type, recognizer_config
         )
