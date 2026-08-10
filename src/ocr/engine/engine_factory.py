@@ -3,25 +3,21 @@ from src.ocr.engine.ocr_engine import OcrEngine
 
 
 class EngineFactory:
-    def __init__(self):
-        pass
-
     @staticmethod
     def create_engine(
-        detector_type: DetectorType, recognizer_type: RecognizerType, config_data: dict
+        pipeline_config_data: dict, detector_config: dict, recognizer_config: dict
     ) -> OcrEngine:
-        detector_config = config_data.get("detector", None)
-        recognizer_config = config_data.get("recognizer", None)
-
-        if detector_config is None:
-            raise ValueError("Detector config is missing")
-
-        if recognizer_config is None:
-            raise ValueError("Recognizer config is missing")
 
         engine = OcrEngine()
 
+        # Detector type (has converted to DetectorType) and detector config have already been validated
+        # during configuration loading, so no additional validation is required here.
+        detector_type = pipeline_config_data["detector"]["type"]
         EngineFactory._create_engine_detector(engine, detector_type, detector_config)
+
+        # Recognizer type (has converted to RecognizerType) and recognizer config have already been validated
+        # during configuration loading, so no additional validation is required here.
+        recognizer_type = pipeline_config_data["recognizer"]["type"]
         EngineFactory._create_engine_recognizer(
             engine, recognizer_type, recognizer_config
         )
@@ -35,8 +31,14 @@ class EngineFactory:
         if detector_type == DetectorType.PADDLE:
             from src.ocr.detector.paddle_detector import PaddleDetector
 
-            engine.detector = PaddleDetector(detector_config)
-            engine.detector.load_model()
+            detector = PaddleDetector(detector_config)
+            detector.load_model()
+            engine.detector = detector
+            return
+
+        raise NotImplementedError(
+            f"Detector type '{detector_type.value}' is not implemented."
+        )
 
     @staticmethod
     def _create_engine_recognizer(
@@ -45,5 +47,11 @@ class EngineFactory:
         if recognizer_type == RecognizerType.PADDLE:
             from src.ocr.recognizer.paddle_recognizer import PaddleRecognizer
 
-            engine.recognizer = PaddleRecognizer(recognizer_config)
-            engine.recognizer.load_model()
+            recognizer = PaddleRecognizer(recognizer_config)
+            recognizer.load_model()
+            engine.recognizer = recognizer
+            return
+
+        raise NotImplementedError(
+            f"Recognizer type '{recognizer_type.value}' is not implemented."
+        )
