@@ -12,8 +12,9 @@ from src.grpc_service.generated import ocr_pb2_grpc
 from src.grpc_service.servicer import OcrServicer
 from src.ocr.engine.engine_factory import EngineFactory
 from src.ocr.pipeline.pipeline import OcrPipeline
+from src.shared.logging.logging_config import LoggingConfig
 
-logger = logging.getLogger()
+logger = logging.getLogger(__name__)
 
 load_dotenv()
 
@@ -50,12 +51,13 @@ def create_server(ocr_pipeline: OcrPipeline) -> grpc.Server:
 
 
 def serve() -> None:
-    logging.basicConfig(
-        level=getattr(logging, LOG_LEVEL),
-        format=("%(asctime)s | %(levelname)s | %(name)s | %(message)s"),
+    LoggingConfig.configure(
+        log_level=LOG_LEVEL,
     )
 
+    logger.info("Initializing OCR pipeline...")
     ocr_pipeline = create_ocr_pipeline()
+    logger.info("OCR pipeline initialized.")
 
     server = create_server(ocr_pipeline=ocr_pipeline)
 
