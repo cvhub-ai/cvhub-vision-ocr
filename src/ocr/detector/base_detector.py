@@ -1,7 +1,9 @@
 from abc import ABC, abstractmethod
+
 import numpy as np
 
 from src.models.ocr_result import DetectionResult
+
 
 class BaseDetector(ABC):
     @abstractmethod
@@ -13,10 +15,10 @@ class BaseDetector(ABC):
     def detect(self, image: np.ndarray) -> list[DetectionResult]:
         """
         Detect text regions in the image.
- 
+
         Args:
             image: Input image as numpy array (H, W, C) in BGR format.
- 
+
         Returns:
             List of DetectionResult containing bounding boxes and confidence scores.
         """

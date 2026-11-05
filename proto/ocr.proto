@@ -1,77 +1,159 @@
 syntax = "proto3";
 
-package ocr;
+package cvhub.ocr.v1;
 
-// ------------------------------------------------------------------ //
-//  Image Request
-// ------------------------------------------------------------------ //
+service OcrService {
 
-message OCRRequest {
-  bytes  image        = 1;  // raw image bytes (JPEG / PNG binary)
-  string image_format = 2;  // "jpg", "png", etc.
+  // process single image
+  rpc ProcessSingleImage(OcrSingleProcessRequest) returns (OcrSingleProcessResponse);
+
+  // process multi images in one request
+  rpc ProcessBatchImages(OcrBatchProcessRequest) returns (OcrBatchProcessResponse);
+  
+  // return supported formats, service version and processing limits
+  rpc GetCapabilities(GetCapabilitiesRequest) returns (GetCapabilitiesResponse);
+
 }
 
-message BatchOCRRequest {
-  repeated OCRRequest requests = 1;
+// -----------------------------------------------------------------------------
+// Request and Response context
+// -----------------------------------------------------------------------------
+
+message RequestContext {
+    string request_id = 1;
+    string client_id = 2;
 }
 
-// ------------------------------------------------------------------ //
-//  Result messages  (mirrors OCRResult dataclass)
-// ------------------------------------------------------------------ //
+message ResponseContext {
+    string request_id = 1;
+    string client_id = 2;
+}
+
+// -----------------------------------------------------------------------------
+// Single image process
+// -----------------------------------------------------------------------------
+
+message OcrSingleProcessRequest {
+  RequestContext context = 1;
+  ImageInput image = 2;
+  OcrOptions options = 3;
+}
+
+message OcrSingleProcessResponse {
+  ResponseContext context = 1;
+  ImageResult result = 2;
+}
+
+// -----------------------------------------------------------------------------
+// Batch images process
+// -----------------------------------------------------------------------------
+
+message OcrBatchProcessRequest {
+  RequestContext context = 1;
+  repeated ImageInput images = 2;
+  OcrOptions options = 3;
+}
+
+message OcrBatchProcessResponse {
+  ResponseContext context = 1;
+  repeated BatchItemResult results = 2;
+}
+
+message BatchItemResult {
+  string image_id = 1;
+  oneof outcome {
+    ImageResult result = 2;
+    ItemError error = 3;
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Input
+// -----------------------------------------------------------------------------
+
+message ImageInput {
+  string image_id = 1;
+  // Raw image bytes.
+  bytes data = 2;
+  // MIME type, for example image/jpeg or image/png.
+  string mime_type = 3;
+  // Optional original filename used for logging and debugging.
+  string filename = 4;
+}
+
+message OcrOptions {
+  string language = 1;
+}
+
+// -----------------------------------------------------------------------------
+// OCR result
+// -----------------------------------------------------------------------------
+
+message ImageResult {
+  int32 image_width = 1;
+  int32 image_height = 2;
+  repeated TextRegion regions = 3;
+  ProcessingMetadata metadata = 4;
+}
+
+message TextRegion {
+  DetectionRegion bounding_box = 1;
+  float detection_confidence = 2;
+  string text = 3;
+  float recognition_confidence = 4;
+}
+
+message DetectionRegion {
+  Point top_left = 1;
+  Point top_right = 2;
+  Point bottom_right = 3;
+  Point bottom_left = 4;
+}
 
 message Point {
   int32 x = 1;
   int32 y = 2;
 }
 
-message BoundingBox {
-  repeated Point points = 1;  // 4 points: [x1y1, x2y2, x3y3, x4y4]
+message ProcessingMetadata {
+  int64 processing_time_ms = 1;
+  string pipeline_version = 2;
 }
 
-message DetectionResult {
-  BoundingBox bbox       = 1;
-  float       confidence = 2;
+// -----------------------------------------------------------------------------
+// Batch item error
+// -----------------------------------------------------------------------------
+
+enum ItemErrorCode {
+  ITEM_ERROR_CODE_UNSPECIFIED = 0;
+  INVALID_IMAGE = 1;
+  UNSUPPORTED_FORMAT = 2;
+  IMAGE_TOO_LARGE = 3;
+  PROCESSING_FAILED = 4;
 }
 
-message RecognitionResult {
-  string text       = 1;
-  float  confidence = 2;
+message ItemError {
+  ItemErrorCode code = 1;
+  string message = 2;
 }
 
-message OCRResult {
-  DetectionResult   det_result = 1;
-  RecognitionResult rec_result = 2;
+// -----------------------------------------------------------------------------
+// Capabilities
+// -----------------------------------------------------------------------------
+
+message GetCapabilitiesRequest {
+  RequestContext context = 1;
 }
 
-message OCRResponse {
-  repeated OCRResult results            = 1;
-  float              processing_time_ms = 2;
-  string             error              = 3;  // empty = success
-}
-
-message BatchOCRResponse {
-  repeated OCRResponse responses = 1;  // one per image
-}
-
-// ------------------------------------------------------------------ //
-//  Engine management
-// ------------------------------------------------------------------ //
-
-message RebuildEngineRequest {
-  string engine_type = 1;  // must match EngineType enum, e.g. "PADDLE_OCR"
-}
-
-message RebuildEngineResponse {
-  bool   success = 1;
-  string error   = 2;
-}
-
-// ------------------------------------------------------------------ //
-//  Service
-// ------------------------------------------------------------------ //
-
-service OCRService {
-  rpc Recognize      (OCRRequest)           returns (OCRResponse);
-  rpc BatchRecognize (BatchOCRRequest)      returns (BatchOCRResponse);
-  rpc RebuildEngine  (RebuildEngineRequest) returns (RebuildEngineResponse);
+message GetCapabilitiesResponse {
+  ResponseContext context = 1;
+  string service_name = 2;
+  string service_version = 3;
+  string pipeline_version = 4;
+  repeated string supported_mime_types = 5;
+  int32 max_image_width = 6;
+  int32 max_image_height = 7;
+  int64 max_image_size_bytes = 8;
+  int32 max_batch_size = 9;
+  bool supports_batch_processing = 10;
 }

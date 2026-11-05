@@ -1,10 +1,11 @@
 from abc import ABC, abstractmethod
+
 import numpy as np
 
-from src.models.ocr_result import DetectionResult, RecognitionResult
+from src.models.ocr_result import RecognitionResult
+
 
 class BaseRecognizer(ABC):
-
     @abstractmethod
     def load_model(self) -> None:
         """Load the recognition model into memory."""

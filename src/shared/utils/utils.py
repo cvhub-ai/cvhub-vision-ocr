@@ -1,6 +1,7 @@
 import cv2
 import numpy as np
 
+
 class Utils:
     @staticmethod
     def sort_bbox_points(pts: np.ndarray) -> np.ndarray:
@@ -39,12 +40,15 @@ class Utils:
         )
         width, height = int(width), int(height)
 
-        dst = np.array([
-            [0,         0],
-            [width - 1, 0],
-            [width - 1, height - 1],
-            [0,         height - 1],
-        ], dtype=np.float32)
+        dst = np.array(
+            [
+                [0, 0],
+                [width - 1, 0],
+                [width - 1, height - 1],
+                [0, height - 1],
+            ],
+            dtype=np.float32,
+        )
 
         M = cv2.getPerspectiveTransform(points, dst)
         text_roi = cv2.warpPerspective(image, M, (width, height))
